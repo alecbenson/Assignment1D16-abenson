@@ -13,7 +13,11 @@
 package tollbooth;
 
 import static org.junit.Assert.*;
+
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
 import tollbooth.gatecontroller.*;
 import tollbooth.TollboothException;
 
@@ -169,22 +173,6 @@ public class TollboothTest
 	}
 	
 	@Test
-	public void unrecoverableResetMalfunctionAfterThreeMalfunctions() throws TollboothException
-	{
-		final TestGateController controller = new TestGateController();
-		final SimpleLogger logger = new TollboothLogger();
-		final TollGate gate = new TollGate(controller, logger);
-		controller.scheduleXFailures(3);
-		gate.reset();
-		LogMessage message = logger.getNextMessage();
-		assertEquals("reset: malfunction", message.getMessage());
-		message = logger.getNextMessage();
-		assertEquals("reset: malfunction", message.getMessage());
-		message = logger.getNextMessage();
-		assertEquals("reset: unrecoverable malfunction", message.getMessage());
-	}
-	
-	@Test
 	public void gateAlreadyOpenNoLogMessage() throws TollboothException
 	{
 		final TestGateController controller = new TestGateController();
@@ -276,9 +264,22 @@ public class TollboothTest
 		controller.isOpen = true;
 		controller.scheduleXFailures(4);
 		gate.reset();
-		assertEquals(true, gate.isOpen());
+		assertEquals(true, gate.unresponsiveMode);
 	}
 	
+	@Test(expected=tollbooth.TollboothException.class)
+	public void gateIsOpenUnrecoverableException() throws TollboothException
+	{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		controller.scheduleXFailures(3);
+		gate.open();
+		gate.isOpen();
+	}
+	
+	@Rule
+	public ExpectedException expectedEx = ExpectedException.none();
 	@Test
 	public void notRespondingMessageOnFourthOpenMalfunction() throws TollboothException
 	{
@@ -290,11 +291,8 @@ public class TollboothTest
 		for(int i = 0; i < 3; i++){
 			logger.getNextMessage();
 		}
-		try{
-			gate.open();
-		}catch (TollboothException e) {
-			LogMessage message = logger.getNextMessage();
-			assertEquals("open: will not respond", message.getMessage());
-		}
+		expectedEx.expect(tollbooth.TollboothException.class);
+		expectedEx.expectMessage("open: will not respond");
+		gate.open();
 	}
 }

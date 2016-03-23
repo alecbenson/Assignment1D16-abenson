@@ -26,7 +26,7 @@ public class TollGate
 	private int openCount;
 	private int closeCount;
 	private final int maxFailures;
-	private boolean unresponsiveMode;
+	public boolean unresponsiveMode;
 	
 	/**
 	 * Constructor that takes the actual gate controller and the logger.
@@ -51,7 +51,13 @@ public class TollGate
 	 * @throws TollboothException
 	 */
 	public void open() throws TollboothException
-	{				
+	{	
+		if(this.unresponsiveMode){
+			String logMessage = "open: will not respond";
+			this.logger.accept(new LogMessage(logMessage));
+			throw new TollboothException(logMessage);
+		}
+		
 		if(this.controller.isOpen()){
 			return;
 		}
@@ -64,6 +70,12 @@ public class TollGate
 	 */
 	public void close() throws TollboothException
 	{
+		if(this.unresponsiveMode){
+			String logMessage = "close: will not respond";
+			this.logger.accept(new LogMessage(logMessage));
+			throw new TollboothException(logMessage);
+		}
+		
 		if(!this.controller.isOpen()){
 			return;
 		}
@@ -92,6 +104,7 @@ public class TollGate
 					break;
 				case RESET:
 					this.controller.reset();
+					this.unresponsiveMode = false;
 					break;
 			}
 	}
@@ -100,15 +113,8 @@ public class TollGate
 		String logMessage;
 		String actionName = this.getActionName(act);
 		
-		//Otherwise, attempt to close until success or until maxFailures attempts
+		//Attempt to close until success or until maxFailures attempts
 		for(int attempt = 1; attempt <= maxFailures; attempt++){
-			//If the gate is not responding to log messages
-			if(this.unresponsiveMode == true){
-				logMessage = String.format("%s: will not respond", actionName);
-				this.logger.accept(new LogMessage(logMessage));
-				throw new TollboothException(logMessage);
-			}
-			
 			try{
 				this.takeControllerAction(act);
 				logMessage = String.format("%s: successful", actionName);
@@ -149,7 +155,11 @@ public class TollGate
 	 */
 	public boolean isOpen() throws TollboothException
 	{
+		if(this.unresponsiveMode){
+			throw new TollboothException("Gate is in unresponsive mode");
+		} else{
 			return controller.isOpen();
+		}
 	}
 	
 	/**
