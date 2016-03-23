@@ -121,9 +121,11 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final TollboothLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		LogMessage message = logger.getNextMessage();
+		assertEquals(null, message);
 		controller.scheduleXFailures(3);
 		gate.open();
-		LogMessage message = logger.getNextMessage();
+		message = logger.getNextMessage();
 		assertEquals("open: malfunction", message.getMessage());
 		message = logger.getNextMessage();
 		assertEquals("open: malfunction", message.getMessage());
@@ -138,6 +140,7 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final TollboothLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(0, logger.logSize());
 		controller.scheduleXFailures(3);
 		gate.open();
 		assertEquals(3, logger.logSize());
@@ -149,6 +152,7 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final TollboothLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(0, logger.logSize());
 		controller.scheduleXFailures(3);
 		controller.isOpen = true;
 		gate.close();
@@ -161,6 +165,7 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final TollboothLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(0, logger.logSize());
 		controller.scheduleXFailures(4);
 		controller.isOpen = true;
 		gate.close();
@@ -202,6 +207,7 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(0, gate.getNumberOfOpens());
 		controller.isOpen = false;
 		gate.open();
 		controller.isOpen = false;
@@ -215,6 +221,8 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(0, gate.getNumberOfCloses());
+		assertEquals(0, gate.getNumberOfOpens());
 		controller.scheduleXFailures(1);
 		controller.isOpen = false;
 		gate.open();
@@ -234,6 +242,8 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(0, gate.getNumberOfOpens());
+		assertEquals(0, gate.getNumberOfCloses());
 		controller.scheduleXFailures(1);
 		controller.isOpen = true;
 		gate.close();
@@ -253,6 +263,7 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(false, gate.unresponsiveMode);
 		controller.scheduleXFailures(1);
 		controller.isOpen = true;
 		gate.reset();
@@ -294,5 +305,35 @@ public class TollboothTest
 		expectedEx.expect(tollbooth.TollboothException.class);
 		expectedEx.expectMessage("open: will not respond");
 		gate.open();
+	}
+	
+	@Test
+	public void loggerHasCause() throws TollboothException{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		controller.scheduleXFailures(3);
+		gate.open();
+		for(int i = 0; i < 3; i++){
+			logger.getNextMessage();
+		}
+		try{
+			gate.open();
+		}catch(TollboothException e){
+			LogMessage msg = logger.getNextMessage();
+			assertEquals(true, msg.hasCause());
+			assertEquals("open: will not respond",msg.getCause().getMessage());
+		}
+	}
+	
+	@Test
+	public void loggerHasNoCause() throws TollboothException{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		controller.scheduleXFailures(1);
+		gate.open();
+		LogMessage msg = logger.getNextMessage();
+		assertEquals(false, msg.hasCause());
 	}
 }

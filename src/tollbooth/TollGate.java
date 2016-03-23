@@ -52,12 +52,6 @@ public class TollGate
 	 */
 	public void open() throws TollboothException
 	{	
-		if(this.unresponsiveMode){
-			String logMessage = "open: will not respond";
-			this.logger.accept(new LogMessage(logMessage));
-			throw new TollboothException(logMessage);
-		}
-		
 		if(this.controller.isOpen()){
 			return;
 		}
@@ -70,12 +64,6 @@ public class TollGate
 	 */
 	public void close() throws TollboothException
 	{
-		if(this.unresponsiveMode){
-			String logMessage = "close: will not respond";
-			this.logger.accept(new LogMessage(logMessage));
-			throw new TollboothException(logMessage);
-		}
-		
 		if(!this.controller.isOpen()){
 			return;
 		}
@@ -116,11 +104,19 @@ public class TollGate
 		//Attempt to close until success or until maxFailures attempts
 		for(int attempt = 1; attempt <= maxFailures; attempt++){
 			try{
+				if(this.unresponsiveMode && act != Action.RESET){
+					logMessage = String.format("%s: will not respond", actionName);
+					throw new TollboothException(logMessage);
+				}
 				this.takeControllerAction(act);
 				logMessage = String.format("%s: successful", actionName);
 				this.logger.accept(new LogMessage(logMessage));
 				return;
 			} catch(TollboothException e) {
+				if(this.unresponsiveMode){
+					logger.accept(new LogMessage(e.getMessage(), e));
+					throw e;
+				}
 				if(attempt == maxFailures){
 					logMessage = String.format("%s: unrecoverable malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
