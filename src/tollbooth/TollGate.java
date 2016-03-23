@@ -13,6 +13,7 @@
 package tollbooth;
 
 import tollbooth.gatecontroller.GateController;
+import tollbooth.TollboothException;
 
 /**
  * The TollGate contains everything about a tollgate in a tollbooth.
@@ -41,43 +42,20 @@ public class TollGate
 		this.unresponsiveMode = false;
 	}
 	
+	public enum Action{
+		OPEN, CLOSE, RESET
+	}
+	
 	/**
 	 * Open the gate.
 	 * @throws TollboothException
 	 */
 	public void open() throws TollboothException
 	{				
-			String logMessage;
-			//If the controller is already open, simply return, we're done
-			if(controller.isOpen()){
-				return;
-			}
-			
-			//Otherwise, attempt to open until success or until maxFailures attempts
-			for(int attempt = 1; attempt <= maxFailures; attempt++){
-				//If the gate is not responding to log messages
-				if(this.unresponsiveMode == true){
-					logMessage = "open: will not respond";;
-					this.logger.accept(new LogMessage(logMessage));
-					throw new TollboothException(logMessage);
-				}
-				
-				try{
-					controller.open();
-					this.openCount++;
-					logMessage = "open: successful";
-					this.logger.accept(new LogMessage(logMessage));
-				} catch(TollboothException e) {
-					if(attempt == maxFailures){
-						logMessage = "open: unrecoverable malfunction";
-						logger.accept(new LogMessage(logMessage));
-						this.unresponsiveMode = true;
-					} else{
-						logMessage = "open: malfunction";
-						logger.accept(new LogMessage(logMessage));
-					}					
-				}
-			}
+		if(this.controller.isOpen()){
+			return;
+		}
+		this.actionDispatch(this.controller, Action.OPEN);
 	}
 	
 	/**
@@ -86,37 +64,10 @@ public class TollGate
 	 */
 	public void close() throws TollboothException
 	{
-		String logMessage;
-		//If the controller is already closed, simply return, we're done
-		if(!controller.isOpen()){
+		if(!this.controller.isOpen()){
 			return;
 		}
-		
-		//Otherwise, attempt to close until success or until maxFailures attempts
-		for(int attempt = 1; attempt <= maxFailures; attempt++){
-			//If the gate is not responding to log messages
-			if(this.unresponsiveMode == true){
-				logMessage = "close: will not respond";;
-				this.logger.accept(new LogMessage(logMessage));
-				throw new TollboothException(logMessage);
-			}
-			
-			try{
-				controller.close();
-				this.closeCount++;
-				logMessage = "close: successful";
-				this.logger.accept(new LogMessage(logMessage));
-			} catch(TollboothException e) {
-				if(attempt == maxFailures){
-					logMessage = "close: unrecoverable malfunction";
-					logger.accept(new LogMessage(logMessage));
-					this.unresponsiveMode = true;
-				} else{
-					logMessage = "close: malfunction";
-					logger.accept(new LogMessage(logMessage));
-				}					
-			}
-		}
+		this.actionDispatch(this.controller, Action.CLOSE);
 	}
 	
 	/**
@@ -126,32 +77,70 @@ public class TollGate
 	 */
 	public void reset() throws TollboothException
 	{
-		String logMessage;		
+		this.actionDispatch(this.controller, Action.RESET);
+	}
+	
+	public void takeControllerAction(Action act) throws TollboothException{
+			switch(act){
+				case OPEN:
+					this.controller.open();
+					this.openCount++;
+					break;
+				case CLOSE:
+					this.controller.close();
+					this.closeCount++;
+					break;
+				case RESET:
+					this.controller.reset();
+					break;
+			}
+	}
+	
+	public void actionDispatch(GateController controller, Action act) throws TollboothException{
+		String logMessage;
+		String actionName = this.getActionName(act);
+		
+		//Otherwise, attempt to close until success or until maxFailures attempts
 		for(int attempt = 1; attempt <= maxFailures; attempt++){
 			//If the gate is not responding to log messages
 			if(this.unresponsiveMode == true){
-				logMessage = "open: will not respond";;
+				logMessage = String.format("%s: will not respond", actionName);
 				this.logger.accept(new LogMessage(logMessage));
 				throw new TollboothException(logMessage);
 			}
 			
 			try{
-				if(controller.isOpen()){
-					controller.close();
-				};
-				logMessage = "reset: successful";
+				this.takeControllerAction(act);
+				logMessage = String.format("%s: successful", actionName);
 				this.logger.accept(new LogMessage(logMessage));
+				return;
 			} catch(TollboothException e) {
 				if(attempt == maxFailures){
-					logMessage = "reset: unrecoverable malfunction";
+					logMessage = String.format("%s: unrecoverable malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
 					this.unresponsiveMode = true;
 				} else{
-					logMessage = "reset: malfunction";
+					logMessage = String.format("%s: malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
 				}					
 			}
 		}
+	}
+	
+	public String getActionName(Action act){
+		String actionName = "Unknown";
+		switch(act){
+			case OPEN:
+				actionName = "open";
+				break;
+			case CLOSE:
+				actionName = "close";
+				break;
+			case RESET:
+				actionName = "reset";
+				break;
+		}
+		return actionName;
 	}
 	
 	/**
@@ -169,7 +158,6 @@ public class TollGate
 	 */
 	public int getNumberOfOpens()
 	{
-		// To be completed
 		return openCount;
 	}
 	
@@ -179,7 +167,6 @@ public class TollGate
 	 */
 	public int getNumberOfCloses()
 	{
-		// To be completed
 		return this.closeCount;
 	}
 }

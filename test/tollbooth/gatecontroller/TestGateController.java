@@ -20,13 +20,16 @@ import tollbooth.TollboothException;
  */
 public class TestGateController implements GateController
 {
-	boolean isOpen;
+	public boolean isOpen;
+	boolean failureMode;
+	int scheduledFailures;
 	/**
 	 * Constructor for the test gate controller.
 	 */
 	public TestGateController()
 	{
-		isOpen = false;
+		this.isOpen = false;
+		this.scheduledFailures = 0;
 	}
 	
 	/*
@@ -35,6 +38,10 @@ public class TestGateController implements GateController
 	@Override
 	public void open() throws TollboothException
 	{
+		if(this.scheduledFailures > 0){
+			this.scheduledFailures--;
+			throw new TollboothException("Failure to open");
+		}
 		isOpen = true;
 	}
 
@@ -44,8 +51,11 @@ public class TestGateController implements GateController
 	@Override
 	public void close() throws TollboothException
 	{
-		// TODO Auto-generated method stub
-
+		if(this.scheduledFailures > 0){
+			this.scheduledFailures--;
+			throw new TollboothException("Failure to close");
+		}
+		isOpen = false;
 	}
 
 	/*
@@ -54,8 +64,11 @@ public class TestGateController implements GateController
 	@Override
 	public void reset() throws TollboothException
 	{
-		// TODO Auto-generated method stub
-
+		if(this.scheduledFailures > 0){
+			this.scheduledFailures--;
+			throw new TollboothException("Failure to reset");
+		}
+		isOpen = false;
 	}
 
 	/*
@@ -66,5 +79,13 @@ public class TestGateController implements GateController
 	{
 		return isOpen;
 	}
-
+	
+	/*
+	 * Schedules the next X actions to cause TollboothExceptions
+	 * @param count the number of failures to schedule
+	 */
+	public void scheduleXFailures(int count){
+		this.scheduledFailures = count;
+	}
+	
 }
