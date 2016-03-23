@@ -41,6 +41,9 @@ public class TollGate
 		unresponsiveMode = false;
 	}
 	
+	/**
+	 * Specifies the different types of actions that the gate controller can take
+	 */
 	public enum Action{
 		OPEN, CLOSE, RESET
 	}
@@ -88,14 +91,17 @@ public class TollGate
 			switch(act){
 				case OPEN:
 					controller.open();
+					//Increment if no exception thrown
 					openCount++;
 					break;
 				case CLOSE:
 					controller.close();
+					//Increment if no exception thrown
 					closeCount++;
 					break;
 				case RESET:
 					controller.reset();
+					//Set unresponsive mode back to false
 					unresponsiveMode = false;
 					break;
 			}
@@ -116,23 +122,29 @@ public class TollGate
 		//Attempt to close until success or until maxFailures attempts
 		for(int attempt = 1; attempt <= maxFailures; attempt++){
 			try{
+				//if in unresponsive mode, throw exception unless action is reset
 				if(unresponsiveMode && act != Action.RESET){
 					logMessage = String.format("%s: will not respond", actionName);
 					throw new TollboothException(logMessage);
 				}
+				//make a call to the gate controller API
 				this.takeControllerAction(act);
+				//Log successful action taken
 				logMessage = String.format("%s: successful", actionName);
 				logger.accept(new LogMessage(logMessage));
 				return;
 			} catch(TollboothException e) {
+				//Throw the exception if in unresponsive mode
 				if(unresponsiveMode){
 					logger.accept(new LogMessage(e.getMessage(), e));
 					throw e;
 				}
+				//If this is the third try, set unrecoverable mode
 				if(attempt == maxFailures){
 					logMessage = String.format("%s: unrecoverable malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
 					unresponsiveMode = true;
+				//Otherwise just log another malfunction
 				} else{
 					logMessage = String.format("%s: malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
