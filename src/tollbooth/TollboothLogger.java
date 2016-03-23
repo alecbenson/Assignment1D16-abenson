@@ -1,19 +1,32 @@
+/*******************************************************************************
+ * This file was developed by Alec Benson
+ * for CS4233: Object-Oriented Analysis & Design Project 1.
+ *******************************************************************************/
+
 package tollbooth;
 
 import java.util.LinkedList;
 import java.util.Queue;
 
+/**
+ * The TollboothLogger is an implementation of the SimpleLogger interface. 
+ * It provides a FIFO queue for storing messages that are produced by the TollGate
+ **/
 public class TollboothLogger implements SimpleLogger {
 	
 	private Queue<LogMessage> logMessageQueue;
 	
+	/**
+	 * The basic constructor for a new TollboothLogger.
+	 * Creates an empty queue for storing LogMessage objects
+	 */
 	public TollboothLogger(){
-		this.logMessageQueue = new LinkedList<LogMessage>();
+		logMessageQueue = new LinkedList<LogMessage>();
 	}
 
 	@Override
 	public void accept(LogMessage message) {
-		this.logMessageQueue.add(message);
+		logMessageQueue.add(message);
 	}
 
 	@Override
@@ -21,7 +34,7 @@ public class TollboothLogger implements SimpleLogger {
 		if(logMessageQueue.isEmpty()){
 			return null;
 		} else{
-			return this.logMessageQueue.poll();
+			return logMessageQueue.poll();
 		}
 	}
 	
@@ -30,6 +43,6 @@ public class TollboothLogger implements SimpleLogger {
 	 * @return the number of LogMessage objects in the logger queue
 	 */
 	public int logSize(){
-		return this.logMessageQueue.size();
+		return logMessageQueue.size();
 	}
 }

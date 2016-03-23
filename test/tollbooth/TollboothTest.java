@@ -19,7 +19,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import tollbooth.gatecontroller.*;
-import tollbooth.TollboothException;
 
 /**
  * Test cases for the Tollbooth, TollGate class.
@@ -105,7 +104,7 @@ public class TollboothTest
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
 		controller.scheduleXFailures(3);
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		gate.close();
 		LogMessage message = logger.getNextMessage();
 		assertEquals("close: malfunction", message.getMessage());
@@ -154,7 +153,7 @@ public class TollboothTest
 		final TollGate gate = new TollGate(controller, logger);
 		assertEquals(0, logger.logSize());
 		controller.scheduleXFailures(3);
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		gate.close();
 		assertEquals(3, logger.logSize());
 	}
@@ -167,9 +166,9 @@ public class TollboothTest
 		final TollGate gate = new TollGate(controller, logger);
 		assertEquals(0, logger.logSize());
 		controller.scheduleXFailures(4);
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		gate.close();
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		try{
 			gate.close();
 		}catch(TollboothException e){
@@ -183,7 +182,7 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		gate.open();
 		LogMessage message = logger.getNextMessage();
 		assertEquals(message, null);
@@ -195,10 +194,10 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
-		controller.isOpen = false;
+		controller.setIsOpen(false);
 		gate.close();
 		LogMessage message = logger.getNextMessage();
-		assertEquals(message, null);
+		assertEquals(null, message);
 	}
 	
 	@Test
@@ -208,9 +207,9 @@ public class TollboothTest
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
 		assertEquals(0, gate.getNumberOfOpens());
-		controller.isOpen = false;
+		controller.setIsOpen(false);
 		gate.open();
-		controller.isOpen = false;
+		controller.setIsOpen(false);
 		gate.open();
 		assertEquals(2, gate.getNumberOfOpens());
 	}
@@ -224,12 +223,12 @@ public class TollboothTest
 		assertEquals(0, gate.getNumberOfCloses());
 		assertEquals(0, gate.getNumberOfOpens());
 		controller.scheduleXFailures(1);
-		controller.isOpen = false;
+		controller.setIsOpen(false);
 		gate.open();
-		controller.isOpen = false;
+		controller.setIsOpen(false);
 		controller.scheduleXFailures(2);
 		gate.open();
-		controller.isOpen = false;
+		controller.setIsOpen(false);
 		controller.scheduleXFailures(4);
 		gate.open();
 		assertEquals(0, gate.getNumberOfCloses());
@@ -245,12 +244,12 @@ public class TollboothTest
 		assertEquals(0, gate.getNumberOfOpens());
 		assertEquals(0, gate.getNumberOfCloses());
 		controller.scheduleXFailures(1);
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		gate.close();
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		controller.scheduleXFailures(2);
 		gate.close();
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		controller.scheduleXFailures(4);
 		gate.close();
 		assertEquals(0, gate.getNumberOfOpens());
@@ -263,19 +262,19 @@ public class TollboothTest
 		final TestGateController controller = new TestGateController();
 		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
-		assertEquals(false, gate.unresponsiveMode);
+		assertEquals(false, gate.getUnresponsiveMode());
 		controller.scheduleXFailures(1);
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		gate.reset();
 		assertEquals(false, gate.isOpen());
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		controller.scheduleXFailures(2);
 		gate.reset();
 		assertEquals(false, gate.isOpen());
-		controller.isOpen = true;
+		controller.setIsOpen(true);
 		controller.scheduleXFailures(4);
 		gate.reset();
-		assertEquals(true, gate.unresponsiveMode);
+		assertEquals(true, gate.getUnresponsiveMode());
 	}
 	
 	@Test(expected=tollbooth.TollboothException.class)
@@ -290,7 +289,7 @@ public class TollboothTest
 	}
 	
 	@Rule
-	public ExpectedException expectedEx = ExpectedException.none();
+	private ExpectedException expectedEx = ExpectedException.none();
 	@Test
 	public void notRespondingMessageOnFourthOpenMalfunction() throws TollboothException
 	{

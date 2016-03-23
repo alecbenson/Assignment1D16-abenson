@@ -13,7 +13,6 @@
 package tollbooth;
 
 import tollbooth.gatecontroller.GateController;
-import tollbooth.TollboothException;
 
 /**
  * The TollGate contains everything about a tollgate in a tollbooth.
@@ -26,7 +25,7 @@ public class TollGate
 	private int openCount;
 	private int closeCount;
 	private final int maxFailures;
-	public boolean unresponsiveMode;
+	private boolean unresponsiveMode;
 	
 	/**
 	 * Constructor that takes the actual gate controller and the logger.
@@ -36,10 +35,10 @@ public class TollGate
 	public TollGate(GateController controller, SimpleLogger logger) {
 		this.controller = controller;
 		this.logger = logger;
-		this.openCount = 0;
-		this.closeCount = 0;
-		this.maxFailures = 3;
-		this.unresponsiveMode = false;
+		openCount = 0;
+		closeCount = 0;
+		maxFailures = 3;
+		unresponsiveMode = false;
 	}
 	
 	public enum Action{
@@ -52,10 +51,10 @@ public class TollGate
 	 */
 	public void open() throws TollboothException
 	{	
-		if(this.controller.isOpen()){
+		if(controller.isOpen()){
 			return;
 		}
-		this.actionDispatch(this.controller, Action.OPEN);
+		this.actionDispatch(controller, Action.OPEN);
 	}
 	
 	/**
@@ -64,10 +63,10 @@ public class TollGate
 	 */
 	public void close() throws TollboothException
 	{
-		if(!this.controller.isOpen()){
+		if(!controller.isOpen()){
 			return;
 		}
-		this.actionDispatch(this.controller, Action.CLOSE);
+		this.actionDispatch(controller, Action.CLOSE);
 	}
 	
 	/**
@@ -77,26 +76,39 @@ public class TollGate
 	 */
 	public void reset() throws TollboothException
 	{
-		this.actionDispatch(this.controller, Action.RESET);
+		this.actionDispatch(controller, Action.RESET);
 	}
 	
+	/**
+	 * runs a method from the controller API based on the action passed to it
+	 * @param act an enum specifying which action to take
+	 * @throws TollboothException
+	 */
 	public void takeControllerAction(Action act) throws TollboothException{
 			switch(act){
 				case OPEN:
-					this.controller.open();
-					this.openCount++;
+					controller.open();
+					openCount++;
 					break;
 				case CLOSE:
-					this.controller.close();
-					this.closeCount++;
+					controller.close();
+					closeCount++;
 					break;
 				case RESET:
-					this.controller.reset();
-					this.unresponsiveMode = false;
+					controller.reset();
+					unresponsiveMode = false;
 					break;
 			}
 	}
 	
+	/**
+	 * Attempts to run the specified action up to maxFailure times.
+	 * This method also produces log messages detailing the status 
+	 * of the actions and whether or not they executed successfully.
+	 * @param controller the GateController object
+	 * @param act the action to perform on the controller
+	 * @throws TollboothException
+	 */
 	public void actionDispatch(GateController controller, Action act) throws TollboothException{
 		String logMessage;
 		String actionName = this.getActionName(act);
@@ -104,23 +116,23 @@ public class TollGate
 		//Attempt to close until success or until maxFailures attempts
 		for(int attempt = 1; attempt <= maxFailures; attempt++){
 			try{
-				if(this.unresponsiveMode && act != Action.RESET){
+				if(unresponsiveMode && act != Action.RESET){
 					logMessage = String.format("%s: will not respond", actionName);
 					throw new TollboothException(logMessage);
 				}
 				this.takeControllerAction(act);
 				logMessage = String.format("%s: successful", actionName);
-				this.logger.accept(new LogMessage(logMessage));
+				logger.accept(new LogMessage(logMessage));
 				return;
 			} catch(TollboothException e) {
-				if(this.unresponsiveMode){
+				if(unresponsiveMode){
 					logger.accept(new LogMessage(e.getMessage(), e));
 					throw e;
 				}
 				if(attempt == maxFailures){
 					logMessage = String.format("%s: unrecoverable malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
-					this.unresponsiveMode = true;
+					unresponsiveMode = true;
 				} else{
 					logMessage = String.format("%s: malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
@@ -129,6 +141,12 @@ public class TollGate
 		}
 	}
 	
+	/**
+	 * Given an action enum type, returns the name of the action. 
+	 * Used for generating detailed logging messages
+	 * @param act the action to perform
+	 * @return the name of the action
+	 */
 	public String getActionName(Action act){
 		String actionName = "Unknown";
 		switch(act){
@@ -151,7 +169,7 @@ public class TollGate
 	 */
 	public boolean isOpen() throws TollboothException
 	{
-		if(this.unresponsiveMode){
+		if(unresponsiveMode){
 			throw new TollboothException("Gate is in unresponsive mode");
 		} else{
 			return controller.isOpen();
@@ -173,6 +191,14 @@ public class TollGate
 	 */
 	public int getNumberOfCloses()
 	{
-		return this.closeCount;
+		return closeCount;
+	}
+	
+	/**
+	 * Used for testing purposes, gets whether or not the gate is in responsive mode
+	 * @return true if in unresponsive mode, false otherwise
+	 */
+	public boolean getUnresponsiveMode(){
+		return unresponsiveMode;
 	}
 }
