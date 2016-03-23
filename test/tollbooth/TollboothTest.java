@@ -26,20 +26,30 @@ public class TollboothTest
 	@Test
 	public void createNewTollGateWithNoController()
 	{
-		assertNotNull(new TollGate(null, null));
+		final SimpleLogger logger = new TollboothLogger();
+		assertNotNull(new TollGate(null, logger));
+	}
+	
+	@Test
+	public void createNewTollGateWithNoLogger()
+	{
+		final GateController controller = new TestGateController();
+		assertNotNull(new TollGate(controller, null));
 	}
 	
 	@Test
 	public void createNewTollGateWithAController()
 	{
-		assertNotNull(new TollGate(new TestGateController(), null));
+		final SimpleLogger logger = new TollboothLogger();
+		assertNotNull(new TollGate(new TestGateController(), logger));
 	}
 	
 	@Test
 	public void newGateControllerIsClosed() throws TollboothException
 	{
 		final GateController controller = new TestGateController();
-		final TollGate gate = new TollGate(controller, null);
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
 		assertFalse(gate.isOpen());
 	}
 
@@ -47,7 +57,8 @@ public class TollboothTest
 	public void gateControllerIsOpenAfterOpenMessage() throws TollboothException
 	{
 		final GateController controller = new TestGateController();
-		final TollGate gate = new TollGate(controller, null);
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
 		gate.open();
 		assertTrue(gate.isOpen());
 	}
@@ -61,7 +72,7 @@ public class TollboothTest
 		 * You will also need to create your own instance of a SimpleLogger and pass it into the constructor. 
 		 */
 		final GateController controller = new TestGateController();
-		final SimpleLogger logger = null;		// put in an instance of your SimpleLogger implementation
+		final SimpleLogger logger = new TollboothLogger();
 		final TollGate gate = new TollGate(controller, logger);
 		gate.open();
 		LogMessage message = logger.getNextMessage();

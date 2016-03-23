@@ -22,6 +22,10 @@ public class TollGate
 {
 	private final GateController controller;
 	private final SimpleLogger logger;
+	private int openCount;
+	private int closeCount;
+	private final int maxFailures;
+	private boolean unresponsiveMode;
 	
 	/**
 	 * Constructor that takes the actual gate controller and the logger.
@@ -31,6 +35,10 @@ public class TollGate
 	public TollGate(GateController controller, SimpleLogger logger) {
 		this.controller = controller;
 		this.logger = logger;
+		this.openCount = 0;
+		this.closeCount = 0;
+		this.maxFailures = 3;
+		this.unresponsiveMode = false;
 	}
 	
 	/**
@@ -38,8 +46,38 @@ public class TollGate
 	 * @throws TollboothException
 	 */
 	public void open() throws TollboothException
-	{
-		controller.open();
+	{				
+			String logMessage;
+			//If the controller is already open, simply return, we're done
+			if(controller.isOpen()){
+				return;
+			}
+			
+			//Otherwise, attempt to open until success or until maxFailures attempts
+			for(int attempt = 1; attempt <= maxFailures; attempt++){
+				//If the gate is not responding to log messages
+				if(this.unresponsiveMode == true){
+					logMessage = "open: will not respond";;
+					this.logger.accept(new LogMessage(logMessage));
+					throw new TollboothException(logMessage);
+				}
+				
+				try{
+					controller.open();
+					this.openCount++;
+					logMessage = "open: successful";
+					this.logger.accept(new LogMessage(logMessage));
+				} catch(TollboothException e) {
+					if(attempt == maxFailures){
+						logMessage = "open: unrecoverable malfunction";
+						logger.accept(new LogMessage(logMessage));
+						this.unresponsiveMode = true;
+					} else{
+						logMessage = "open: malfunction";
+						logger.accept(new LogMessage(logMessage));
+					}					
+				}
+			}
 	}
 	
 	/**
@@ -48,7 +86,37 @@ public class TollGate
 	 */
 	public void close() throws TollboothException
 	{
-		// To be completed
+		String logMessage;
+		//If the controller is already closed, simply return, we're done
+		if(!controller.isOpen()){
+			return;
+		}
+		
+		//Otherwise, attempt to close until success or until maxFailures attempts
+		for(int attempt = 1; attempt <= maxFailures; attempt++){
+			//If the gate is not responding to log messages
+			if(this.unresponsiveMode == true){
+				logMessage = "close: will not respond";;
+				this.logger.accept(new LogMessage(logMessage));
+				throw new TollboothException(logMessage);
+			}
+			
+			try{
+				controller.close();
+				this.closeCount++;
+				logMessage = "close: successful";
+				this.logger.accept(new LogMessage(logMessage));
+			} catch(TollboothException e) {
+				if(attempt == maxFailures){
+					logMessage = "close: unrecoverable malfunction";
+					logger.accept(new LogMessage(logMessage));
+					this.unresponsiveMode = true;
+				} else{
+					logMessage = "close: malfunction";
+					logger.accept(new LogMessage(logMessage));
+				}					
+			}
+		}
 	}
 	
 	/**
@@ -58,7 +126,32 @@ public class TollGate
 	 */
 	public void reset() throws TollboothException
 	{
-		// To be completed
+		String logMessage;		
+		for(int attempt = 1; attempt <= maxFailures; attempt++){
+			//If the gate is not responding to log messages
+			if(this.unresponsiveMode == true){
+				logMessage = "open: will not respond";;
+				this.logger.accept(new LogMessage(logMessage));
+				throw new TollboothException(logMessage);
+			}
+			
+			try{
+				if(controller.isOpen()){
+					controller.close();
+				};
+				logMessage = "reset: successful";
+				this.logger.accept(new LogMessage(logMessage));
+			} catch(TollboothException e) {
+				if(attempt == maxFailures){
+					logMessage = "reset: unrecoverable malfunction";
+					logger.accept(new LogMessage(logMessage));
+					this.unresponsiveMode = true;
+				} else{
+					logMessage = "reset: malfunction";
+					logger.accept(new LogMessage(logMessage));
+				}					
+			}
+		}
 	}
 	
 	/**
@@ -77,7 +170,7 @@ public class TollGate
 	public int getNumberOfOpens()
 	{
 		// To be completed
-		return -1;
+		return openCount;
 	}
 	
 	/**
@@ -87,6 +180,6 @@ public class TollGate
 	public int getNumberOfCloses()
 	{
 		// To be completed
-		return -1;
+		return this.closeCount;
 	}
 }
