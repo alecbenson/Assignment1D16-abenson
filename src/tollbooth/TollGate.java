@@ -141,7 +141,7 @@ public class TollGate
 					logger.accept(new LogMessage(e.getMessage(), e));
 					throw e;
 				//If action is 'reset' and more than 3 malfunctioning resets have been called, throw an exception
-				} else if(act == Action.RESET && resetNotResponding == true){
+				} else if(act == Action.RESET && resetNotResponding){
 					logMessage = "reset: will not respond";
 					logger.accept(new LogMessage(logMessage));
 					throw new TollboothException(logMessage);
