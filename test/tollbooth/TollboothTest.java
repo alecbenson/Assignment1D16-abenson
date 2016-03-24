@@ -330,6 +330,35 @@ public class TollboothTest
 		assertEquals(0, gate.getNumberOfCloses());
 	}
 	
+	@Test
+	public void gateResetFailsThreeTimesInUnrecoverableMode() throws TollboothException
+	{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		LogMessage msg;
+		controller.setIsOpen(true);
+		assertEquals(0, gate.getNumberOfCloses());
+		controller.scheduleXFailures(3);
+		gate.close();
+		for(int i = 0; i < 3; i++){
+			msg = logger.getNextMessage();
+		}
+		assertEquals(true, gate.getUnresponsiveMode());
+		controller.scheduleXFailures(4);
+		gate.reset();
+		for(int i = 0; i < 2; i++){
+			msg = logger.getNextMessage();
+			assertEquals("reset: malfunction", msg.getMessage());
+		}
+		msg = logger.getNextMessage();
+		assertEquals("reset: unrecoverable malfunction", msg.getMessage());
+		assertEquals(0, gate.getNumberOfCloses());
+		expectedEx.expect(tollbooth.TollboothException.class);
+		expectedEx.expectMessage("reset: will not respond");
+		gate.reset();
+	}
+	
 	@Test(expected=tollbooth.TollboothException.class)
 	public void gateIsOpenUnrecoverableException() throws TollboothException
 	{

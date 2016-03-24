@@ -26,6 +26,7 @@ public class TollGate
 	private int closeCount;
 	private final int maxFailures;
 	private boolean unresponsiveMode;
+	private boolean resetNotResponding;
 	
 	/**
 	 * Constructor that takes the actual gate controller and the logger.
@@ -103,6 +104,7 @@ public class TollGate
 					controller.reset();
 					//Set unresponsive mode back to false
 					unresponsiveMode = false;
+					resetNotResponding = false;
 					break;
 			}
 	}
@@ -134,16 +136,25 @@ public class TollGate
 				logger.accept(new LogMessage(logMessage));
 				return;
 			} catch(TollboothException e) {
-				//Throw the exception if in unresponsive mode
-				if(unresponsiveMode){
+				//Throw the exception if in unresponsive mode and action is not reset
+				if(unresponsiveMode && act != Action.RESET){
 					logger.accept(new LogMessage(e.getMessage(), e));
 					throw e;
+				//If action is 'reset' and more than 3 malfunctioning resets have been called, throw an exception
+				} else if(act == Action.RESET && resetNotResponding == true){
+					logMessage = "reset: will not respond";
+					logger.accept(new LogMessage(logMessage));
+					throw new TollboothException(logMessage);
 				}
-				//If this is the third try, set unrecoverable mode
+				//If this is the third try of an action, set unrecoverable mode
 				if(attempt == maxFailures){
 					logMessage = String.format("%s: unrecoverable malfunction", actionName);
 					logger.accept(new LogMessage(logMessage));
 					unresponsiveMode = true;
+					//If this is the third attempt of reset, set 'resetNotResponding'
+					if(act == Action.RESET){
+						resetNotResponding = true;
+					}
 				//Otherwise just log another malfunction
 				} else{
 					logMessage = String.format("%s: malfunction", actionName);
