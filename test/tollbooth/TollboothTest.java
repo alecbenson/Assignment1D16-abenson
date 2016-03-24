@@ -277,6 +277,59 @@ public class TollboothTest
 		assertEquals(true, gate.getUnresponsiveMode());
 	}
 	
+	@Test
+	public void gateOpenResetCalled() throws TollboothException
+	{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(false, gate.getUnresponsiveMode());
+		controller.setIsOpen(true);
+		assertEquals(0, gate.getNumberOfCloses());
+		gate.reset();
+		assertEquals(false, gate.isOpen());
+		LogMessage message = logger.getNextMessage();
+		assertEquals("reset: successful", message.getMessage());
+		assertEquals(0, gate.getNumberOfCloses());
+	}
+	
+	@Test
+	public void gateClosedResetCalled() throws TollboothException
+	{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		assertEquals(false, gate.getUnresponsiveMode());
+		controller.setIsOpen(false);
+		assertEquals(0, gate.getNumberOfCloses());
+		gate.reset();
+		assertEquals(false, gate.isOpen());
+		LogMessage message = logger.getNextMessage();
+		assertEquals("reset: successful", message.getMessage());
+		assertEquals(0, gate.getNumberOfCloses());
+	}
+	
+	@Test
+	public void gateResetFromUnrecoverableModeWhenOpen() throws TollboothException
+	{
+		final TestGateController controller = new TestGateController();
+		final SimpleLogger logger = new TollboothLogger();
+		final TollGate gate = new TollGate(controller, logger);
+		LogMessage msg;
+		controller.setIsOpen(true);
+		controller.scheduleXFailures(3);
+		assertEquals(0, gate.getNumberOfCloses());
+		gate.close();
+		gate.reset();
+		assertEquals(false, gate.getUnresponsiveMode());
+		for(int i = 0; i < 3; i++){
+			msg = logger.getNextMessage();
+		}
+		msg = logger.getNextMessage();
+		assertEquals("reset: successful", msg.getMessage());
+		assertEquals(0, gate.getNumberOfCloses());
+	}
+	
 	@Test(expected=tollbooth.TollboothException.class)
 	public void gateIsOpenUnrecoverableException() throws TollboothException
 	{
@@ -289,7 +342,7 @@ public class TollboothTest
 	}
 	
 	@Rule
-	private ExpectedException expectedEx = ExpectedException.none();
+	public ExpectedException expectedEx = ExpectedException.none();
 	@Test
 	public void notRespondingMessageOnFourthOpenMalfunction() throws TollboothException
 	{
